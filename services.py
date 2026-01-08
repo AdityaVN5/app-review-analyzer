@@ -169,7 +169,7 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
 
     # 3. Execution
     print(f"🚀 Pass 2: Classifying {len(df)} reviews...")
-    batch_size = 50
+    batch_size = 200
     batches = [df.iloc[i:i+batch_size] for i in range(0, len(df), batch_size)]
     review_category_map = {}
 
