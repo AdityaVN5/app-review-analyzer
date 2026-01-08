@@ -65,6 +65,8 @@ async def ingest_stage(request: IngestRequest):
             reviews=reviews_data,
             meta_token_count=token_count
         )
+    except HTTPException as he:
+        raise he
     except Exception as e:
         print(f"Ingestion Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -28,12 +28,14 @@ function App() {
   // Additional State
   const [logs, setLogs] = useState<string[]>([]);
   const [totalTime, setTotalTime] = useState<number>(0);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   const runPipeline = useCallback(async () => {
     // Reset and start loading
     setState({ ...INITIAL_STATE, status: 'loading', stage: 1 });
     setLogs([]);
     setTotalTime(0);
+    setPipelineError(null);
     const startTime = Date.now();
 
     try {
@@ -56,6 +58,14 @@ function App() {
       };
 
       setLogs(prev => [...prev, `✅ Fetched ${ingestRes.reviews.length} reviews.`]);
+
+      if (ingestRes.reviews.length === 0) {
+          setPipelineError("No reviews were found for this app and date range. The analysis has been stopped.");
+          setState(prev => ({ ...prev, status: 'idle', stage: 1 }));
+          setLogs(prev => [...prev, `❌ Stopping pipeline: No reviews found.`]);
+          return;
+      }
+
       setState(prev => ({
           ...prev,
           ingestion: ingestionData,
@@ -109,11 +119,12 @@ function App() {
 
       setLogs(prev => [...prev, `✨ Analysis Complete in ${timeTaken.toFixed(2)}s`]);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Pipeline failed", error);
       setState(prev => ({ ...prev, status: 'idle' })); 
-      setLogs(prev => [...prev, `❌ Error: ${error}`]);
-      alert("Failed to connect to backend or process data.");
+      const errorMessage = error.detail || error.message || String(error);
+      setPipelineError(errorMessage);
+      setLogs(prev => [...prev, `❌ Error: ${errorMessage}`]);
     }
   }, [config]);
 
@@ -246,6 +257,29 @@ function App() {
             )}
           </div>
         </header>
+
+        {/* Global Pipeline Error */}
+        {pipelineError && (
+          <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+             <div className="bg-red-50 border border-red-100 rounded-xl p-6 flex flex-col md:flex-row items-center gap-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                   <div className="w-6 h-6 bg-red-600 rounded-sm"></div>
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                   <h3 className="text-red-900 font-semibold mb-1">Pipeline Error</h3>
+                   <p className="text-red-700 text-sm leading-relaxed">
+                     {pipelineError}
+                   </p>
+                </div>
+                <button 
+                  onClick={resetPipeline}
+                  className="px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-full hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  Clear & Try Again
+                </button>
+             </div>
+          </div>
+        )}
 
         {/* Pipeline Stages */}
         <div className="space-y-0 relative">
