@@ -100,6 +100,12 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
     if df.empty:
         return df, []
 
+    # Smart Sampling Strategy (Applied here to allow full ingestion stats first)
+    MAX_SAMPLES = 600
+    if len(df) > MAX_SAMPLES:
+        print(f"📊 Smart Sampling: Reducing {len(df)} reviews to {MAX_SAMPLES} for efficient classification (95% CI)...")
+        df = df.sample(n=MAX_SAMPLES, random_state=42).sort_values(by='date', ascending=False)
+
     model_flash = genai.GenerativeModel('gemini-2.5-flash') # Updated to latest stable Flash
 
     # 1. Taxonomy Discovery

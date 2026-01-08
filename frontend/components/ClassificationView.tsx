@@ -1,6 +1,6 @@
 import React from 'react';
 import { ClassificationData } from '../types';
-import { Check, Tag, BarChart3, HardDrive, Terminal } from 'lucide-react';
+import { AlertTriangle, Tag, BarChart3, HardDrive, Terminal } from 'lucide-react';
 
 interface ClassificationViewProps {
   data: ClassificationData;
@@ -12,6 +12,14 @@ export const ClassificationView: React.FC<ClassificationViewProps> = ({ data, lo
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {data.totalReviews > 600 && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-red-50 border border-red-100 rounded-lg text-red-800 text-xs animate-in fade-in slide-in-from-top-1 duration-500">
+          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <p>
+            <span className="font-semibold">Dataset Sampled:</span> Due to high volume ({data.totalReviews} reviews), 600 samples were strategically selected for analysis to maintain performance while preserving a 95% confidence interval.
+          </p>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left Column: Log & Taxonomy */}
