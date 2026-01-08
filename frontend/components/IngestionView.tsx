@@ -54,7 +54,6 @@ export const IngestionView: React.FC<IngestionViewProps> = ({ data }) => {
             <tr>
               <th className="px-4 py-2 font-normal w-36">Date</th>
               <th className="px-4 py-2 font-normal">Content</th>
-              <th className="px-4 py-2 font-normal w-16 text-right">Score</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 bg-white">
@@ -65,15 +64,6 @@ export const IngestionView: React.FC<IngestionViewProps> = ({ data }) => {
                 </td>
                 <td className="px-4 py-2.5 text-zinc-700">
                   {sample.content}
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  <span className={`inline-flex items-center gap-1 px-1.5 rounded text-xs font-medium ${
-                    sample.score >= 4 ? 'bg-green-50 text-green-700' :
-                    sample.score <= 2 ? 'bg-red-50 text-red-700' :
-                    'bg-yellow-50 text-yellow-700'
-                  }`}>
-                    {sample.score} <Star className="w-3 h-3 fill-current" />
-                  </span>
                 </td>
               </tr>
             ))}

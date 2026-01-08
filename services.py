@@ -133,7 +133,8 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
         
         prompt = f"""
         Map each Review ID to exactly ONE category from: {taxonomy_list}
-        Output strict JSON: {{"id": "category"}}
+        Output a SINGLE JSON object where keys are Review IDs and values are Categories.
+        Format: {{"id1": "category", "id2": "category"}}
         Reviews:
         {batch_text}
         """
@@ -145,10 +146,21 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
                     generation_config={"response_mime_type": "application/json"}
                 )
                 data = json.loads(resp.text)
+                
                 if isinstance(data, dict):
                     return data
+                elif isinstance(data, list):
+                    # Handle case where model returns list of dicts [{"id": "cat"}, ...]
+                    merged = {}
+                    for item in data:
+                        if isinstance(item, dict):
+                            # Check if it's {"id": "val"} format or {"id": "...", "category": "..."}
+                            # The prompt asks for {"id": "category"}
+                            # So we assume item keys are ids.
+                            merged.update(item)
+                    return merged
                 else:
-                    print(f"⚠️ Batch response is not a dict: {type(data)}")
+                    print(f"⚠️ Batch response is not dict or list: {type(data)}")
                     return {}
             except Exception as e:
                 print(f"⚠️ Error parsing batch JSON (attempt {attempt+1}): {e}")
@@ -201,7 +213,7 @@ def generate_report(df: pd.DataFrame, taxonomy: list, days: int) -> str:
     3. Verbatim: {examples_text}
     
     Write a Strategic Trend Analysis Report in Markdown.
-    Include: Executive Summary, Critical Issues, Feature Requests, and Action Plan.
+    Include: Executive Summary, Critical Issues, and Feature Requests.
     IMPORTANT: Return ONLY the markdown content. Do not include any conversational filler like "Here is the report". Start directly with the # Title.
     """
     

@@ -20,7 +20,7 @@ function App() {
   
   // Configuration State
   const [config, setConfig] = useState<PipelineConfig>({
-    appName: 'in.swiggy.android', // Default to Swiggy as per backend default
+    appName: '', 
     targetDate: new Date().toISOString().split('T')[0],
     lookupDays: 2
   });
