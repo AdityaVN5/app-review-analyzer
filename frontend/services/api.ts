@@ -2,6 +2,20 @@ import { PipelineConfig, AnalysisResponse, IngestionData, ClassificationData, In
 
 const API_URL = '';
 
+// Helper to extract App ID from URL or return the string as is
+const extractAppId = (input: string): string => {
+    try {
+        if (input.includes('play.google.com')) {
+            const url = new URL(input);
+            const id = url.searchParams.get('id');
+            if (id) return id;
+        }
+        return input;
+    } catch (e) {
+        return input;
+    }
+};
+
 // Helper to generate mock daily stats since the backend doesn't provide them
 const generateMockDailyStats = (config: PipelineConfig): DailyStat[] => {
   const stats: DailyStat[] = [
@@ -66,13 +80,15 @@ export const api = {
   }> => {
     
     try {
+        const appId = extractAppId(config.appName);
+        
         const response = await fetch(`${API_URL}/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                app_id: config.appName, // Using appName as app_id
+                app_id: appId, 
                 days_to_fetch: config.lookupDays,
                 language: 'en',
                 country: 'in' // Defaulting to IN for now

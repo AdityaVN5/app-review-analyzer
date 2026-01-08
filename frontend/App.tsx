@@ -112,7 +112,7 @@ function App() {
               {/* App Name */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2" htmlFor="appName">
-                  App Name
+                  Play Store Link
                 </label>
                 <input
                   id="appName"
@@ -121,7 +121,7 @@ function App() {
                   onChange={(e) => handleConfigChange('appName', e.target.value)}
                   disabled={isRunning || isComplete}
                   className="w-full bg-white border border-zinc-200 text-zinc-900 text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-shadow disabled:opacity-50"
-                  placeholder="e.g. DoorDash"
+                  placeholder="https://play.google.com/store/apps/details?id=com.example.app"
                 />
               </div>
 
