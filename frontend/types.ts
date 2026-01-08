@@ -27,6 +27,7 @@ export interface ClassificationData {
   taxonomy: string[];
   distribution: CategoryStat[];
   savedPath: string;
+  csvDownloadUrl?: string; // Optional URL for downloading the CSV
 }
 
 // Keeping Review interface for legacy or future detail views
@@ -49,6 +50,7 @@ export interface Insights {
   recommendations: string[];
   dailyStats: DailyStat[];
   markdownReport: string;
+  dailyStatsCsvDownloadUrl?: string;
 }
 
 export interface PipelineState {
@@ -63,4 +65,24 @@ export interface PipelineConfig {
   appName: string;
   targetDate: string;
   lookupDays: number;
+}
+
+export interface ReviewItem {
+    id: string;
+    date: string;
+    content: string;
+    score: number;
+    topic: string;
+}
+
+export interface AnalysisResponse {
+    app_id: string;
+    total_reviews: number;
+    taxonomy_detected: string[];
+    report_markdown: string;
+    processed_data_preview: ReviewItem[];
+    token_count: number;
+    csv_download_url: string;
+    daily_stats: DailyStat[];
+    daily_stats_csv_download_url: string;
 }

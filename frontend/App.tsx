@@ -4,7 +4,7 @@ import { StageContainer } from './components/StageContainer';
 import { IngestionView } from './components/IngestionView';
 import { ClassificationView } from './components/ClassificationView';
 import { InsightsView } from './components/InsightsView';
-import { api } from './services/mockApi';
+import { api } from './services/api';
 import { PipelineState, PipelineConfig } from './types';
 
 const INITIAL_STATE: PipelineState = {
@@ -20,32 +20,50 @@ function App() {
   
   // Configuration State
   const [config, setConfig] = useState<PipelineConfig>({
-    appName: 'DoorDash',
+    appName: 'in.swiggy.android', // Default to Swiggy as per backend default
     targetDate: new Date().toISOString().split('T')[0],
-    lookupDays: 7
+    lookupDays: 2
   });
 
   const runPipeline = useCallback(async () => {
-    // Reset
+    // Reset and start loading
     setState({ ...INITIAL_STATE, status: 'loading', stage: 1 });
 
     try {
-      // Stage 1: Ingestion
-      const ingestion = await api.runIngestion(config);
-      setState(prev => ({ ...prev, ingestion, stage: 2 }));
+      // Call the Real API
+      const result = await api.analyzeApp(config);
 
-      // Stage 2: Classification
-      const classification = await api.classifyReviews(ingestion);
-      setState(prev => ({ ...prev, classification, stage: 3 }));
+      // Update state progressively or all at once. 
+      // Since it's a single API call now, we can show "complete" for all stages quickly.
+      // We can use small delays just to show the UI animation if we wanted, but let's just set it.
+      
+      setState(prev => ({
+          ...prev,
+          ingestion: result.ingestion,
+          stage: 2, // Move to next visual stage
+      }));
 
-      // Stage 3: Insights
-      // Pass the current config and classification data to generate relevant mock data
-      const insights = await api.synthesizeInsights(classification, config);
-      setState(prev => ({ ...prev, insights, status: 'complete' }));
+      // Small artificial delay for visual effect of "processing" stages
+      await new Promise(r => setTimeout(r, 800));
+
+       setState(prev => ({
+          ...prev,
+          classification: result.classification,
+          stage: 3,
+      }));
+
+      await new Promise(r => setTimeout(r, 800));
+
+      setState(prev => ({
+          ...prev,
+          insights: result.insights,
+          status: 'complete'
+      }));
 
     } catch (error) {
       console.error("Pipeline failed", error);
-      setState(prev => ({ ...prev, status: 'idle' })); // Simple error handling for demo
+      setState(prev => ({ ...prev, status: 'idle' })); 
+      alert("Failed to connect to backend. Make sure FastAPI is running on port 8000.");
     }
   }, [config]);
 

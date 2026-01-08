@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+            '/analyze': 'http://localhost:8000',
+            '/downloads': 'http://localhost:8000',
+        }
       },
       plugins: [react()],
       define: {

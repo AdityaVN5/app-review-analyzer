@@ -26,7 +26,7 @@ export const IngestionView: React.FC<IngestionViewProps> = ({ data }) => {
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-2xl font-semibold text-zinc-900">~{data.tokenCount}</div>
+            <div className="text-2xl font-semibold text-zinc-900">{data.tokenCount}</div>
             <div className="text-xs font-mono text-zinc-500 uppercase tracking-wide">Token Count</div>
           </div>
         </div>

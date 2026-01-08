@@ -16,9 +16,17 @@ class ReviewItem(BaseModel):
     score: int
     topic: Optional[str] = "Uncategorized"
 
+class DailyStat(BaseModel):
+    topic: str
+    counts: dict
+
 class AnalysisResponse(BaseModel):
     app_id: str
     total_reviews: int
     taxonomy_detected: List[str]
     report_markdown: str
     processed_data_preview: List[ReviewItem]
+    token_count: int
+    csv_download_url: str
+    daily_stats: List[DailyStat]
+    daily_stats_csv_download_url: str

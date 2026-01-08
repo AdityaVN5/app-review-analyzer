@@ -163,8 +163,73 @@ def generate_report(df: pd.DataFrame, taxonomy: list, days: int) -> str:
     
     Write a Strategic Trend Analysis Report in Markdown.
     Include: Executive Summary, Critical Issues, Feature Requests, and Action Plan.
+    IMPORTANT: Return ONLY the markdown content. Do not include any conversational filler like "Here is the report". Start directly with the # Title.
     """
     
     model_pro = genai.GenerativeModel('gemini-2.5-pro') # Using Flash for speed/cost, switch to Pro if needed
     response = model_pro.generate_content(prompt)
     return response.text
+
+# --- HELPERS ---
+def save_reviews_to_csv(df: pd.DataFrame, app_id: str) -> str:
+    """Saves the dataframe to a CSV file in the downloads directory."""
+    filename = f"{app_id}_reviews.csv"
+    filepath = os.path.join("downloads", filename)
+    df.to_csv(filepath, index=False)
+    return filename
+
+def estimate_token_usage(df: pd.DataFrame) -> int:
+    """Estimates token usage based on character count (1 token ~= 4 chars)."""
+    if df.empty:
+        return 0
+    total_chars = df['content'].fillna('').astype(str).str.len().sum()
+    return math.ceil(total_chars / 4)
+
+def calculate_daily_stats(df: pd.DataFrame, days: int) -> list:
+    """Aggregates review counts by topic and date."""
+    if df.empty:
+        return []
+
+    # Ensure date is datetime
+    df['date'] = pd.to_datetime(df['date'])
+    df['date_str'] = df['date'].dt.strftime('%b %d') # e.g. "Jun 01"
+
+    # Get last N days including today to ensure consistent columns
+    end_date = datetime.datetime.now()
+    dates = []
+    for i in range(days, -1, -1):
+        d = end_date - datetime.timedelta(days=i)
+        dates.append(d.strftime('%b %d'))
+
+    stats = []
+    topics = df['topic'].unique()
+
+    for topic in topics:
+        topic_data = {'topic': topic, 'counts': {}}
+        topic_df = df[df['topic'] == topic]
+        
+        # Count per date
+        counts = topic_df['date_str'].value_counts().to_dict()
+        
+        # Fill all dates (even if 0) for frontend table consistency
+        for d in dates:
+            topic_data['counts'][d] = counts.get(d, 0)
+            
+        stats.append(topic_data)
+        
+    return stats
+
+def save_daily_stats_to_csv(daily_stats: list, dates: list, app_id: str) -> str:
+    """Saves daily stats to a wide-format CSV."""
+    rows = []
+    for stat in daily_stats:
+        row = {'Topic': stat['topic']}
+        for date in dates:
+            row[date] = stat['counts'].get(date, 0)
+        rows.append(row)
+    
+    df_stats = pd.DataFrame(rows)
+    filename = f"{app_id}_daily_topic_volume.csv"
+    filepath = os.path.join("downloads", filename)
+    df_stats.to_csv(filepath, index=False)
+    return filename

@@ -26,11 +26,11 @@ export const ClassificationView: React.FC<ClassificationViewProps> = ({ data }) 
             <p className="text-green-400">✅ Taxonomy Locked ({data.taxonomy.length} Categories)</p>
             <p className="mt-2 text-zinc-400">🚀 PASS 2: Classifying reviews...</p>
             <div className="pl-2 border-l border-zinc-700 mt-1 space-y-1 text-zinc-500">
-               <p>-> Batch 1/5 processed (100 items)</p>
-               <p>-> Batch 2/5 processed (100 items)</p>
-               <p>-> Batch 3/5 processed (100 items)</p>
-               <p>-> Batch 4/5 processed (100 items)</p>
-               <p>-> Batch 5/5 processed ({data.totalReviews % 100} items)</p>
+               <p>{"-> Batch 1/5 processed (100 items)"}</p>
+               <p>{"-> Batch 2/5 processed (100 items)"}</p>
+               <p>{"-> Batch 3/5 processed (100 items)"}</p>
+               <p>{"-> Batch 4/5 processed (100 items)"}</p>
+               <p>{"-> Batch 5/5 processed ("}{data.totalReviews % 100}{" items)"}</p>
             </div>
             <p className="mt-2 text-green-400">✅ FINAL STATS GENERATED</p>
           </div>
@@ -96,6 +96,19 @@ export const ClassificationView: React.FC<ClassificationViewProps> = ({ data }) 
              <HardDrive className="w-3 h-3 flex-shrink-0" />
              <span className="truncate" title={data.savedPath}>{data.savedPath}</span>
           </div>
+          
+          {data.csvDownloadUrl && (
+             <div className="p-3 bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                <a 
+                  href={data.csvDownloadUrl} 
+                  download 
+                  className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 text-white text-xs font-medium rounded-md hover:bg-zinc-800 transition-colors"
+                >
+                  <HardDrive className="w-3 h-3" />
+                  Download CSV
+                </a>
+             </div>
+          )}
         </div>
       </div>
     </div>
