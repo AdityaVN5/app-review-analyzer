@@ -37,7 +37,7 @@ def fetch_reviews(app_id: str, days: int, target_date_str: str, lang: str = 'en'
         # Determine how many to fetch. Since we can't filter by date API-side easily, 
         # we fetch a safe amount. 
         # If days is small, 1000 might be enough.
-        max_fetch = 3000 
+        max_fetch = 5000
         fetched_count = 0
         
         while fetched_count < max_fetch:
