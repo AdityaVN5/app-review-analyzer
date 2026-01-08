@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         proxy: {
             '/analyze': 'http://localhost:8000',
+            '/stage': 'http://localhost:8000',
             '/downloads': 'http://localhost:8000',
         }
       },

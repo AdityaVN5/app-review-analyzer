@@ -73,72 +73,52 @@ const calculateDistribution = (reviews: any[], taxonomy: string[]) => {
 };
 
 export const api = {
-  analyzeApp: async (config: PipelineConfig): Promise<{
-      ingestion: IngestionData,
-      classification: ClassificationData,
-      insights: Insights
-  }> => {
-    
-    try {
-        const appId = extractAppId(config.appName);
-        
-        const response = await fetch(`${API_URL}/analyze`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                app_id: appId, 
-                days_to_fetch: config.lookupDays,
-                language: 'en',
-                country: 'in' // Defaulting to IN for now
-            }),
-        });
+  ingest: async (config: PipelineConfig) => {
+    const appId = extractAppId(config.appName);
+    const response = await fetch(`${API_URL}/stage/1/ingest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            app_id: appId,
+            days: config.lookupDays,
+            target_date: config.targetDate,
+            language: 'en',
+            country: 'in'
+        }),
+    });
+    if (!response.ok) throw new Error('Ingestion failed');
+    return await response.json();
+  },
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
-        }
+  classify: async (reviews: any[], appId: string) => {
+    // We send back the reviews we received + appId
+    const response = await fetch(`${API_URL}/stage/2/classify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            reviews: reviews, 
+            app_id: appId
+        }),
+    });
+    if (!response.ok) throw new Error('Classification failed');
+    return await response.json();
+  },
 
-        const data: AnalysisResponse = await response.json();
-
-        // --- MAP BACKEND TO FRONTEND STATE ---
-
-        // 1. Ingestion Data
-        const ingestion: IngestionData = {
-            totalReviews: data.total_reviews,
-            tokenCount: data.token_count, 
-            savedPath: "memory", 
-            samples: data.processed_data_preview.map(r => ({
-                date: r.date,
-                content: r.content,
-                score: r.score
-            }))
-        };
-
-        // 2. Classification Data
-        const classification: ClassificationData = {
-            totalReviews: data.total_reviews,
-            taxonomy: data.taxonomy_detected,
-            distribution: calculateDistribution(data.processed_data_preview, data.taxonomy_detected),
-            savedPath: "memory",
-            csvDownloadUrl: data.csv_download_url
-        };
-
-        // 3. Insights Data
-        const insights: Insights = {
-            trends: [], 
-            risks: [],  
-            recommendations: [], 
-            dailyStats: data.daily_stats, // Use real data
-            markdownReport: data.report_markdown,
-            dailyStatsCsvDownloadUrl: data.daily_stats_csv_download_url
-        };
-
-        return { ingestion, classification, insights };
-
-    } catch (error) {
-        console.error("Analysis failed:", error);
-        throw error;
-    }
-  }
+  insight: async (processedReviews: any[], taxonomy: string[], days: number, appId: string) => {
+     const response = await fetch(`${API_URL}/stage/3/insight`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            processed_reviews: processedReviews,
+            taxonomy: taxonomy,
+            days: days,
+            app_id: appId
+        }),
+    });
+    if (!response.ok) throw new Error('Insight generation failed');
+    return await response.json();
+  },
+  
+  // Helper exposed for UI if needed or internal usage
+  calculateDistribution 
 };

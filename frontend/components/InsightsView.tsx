@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Insights } from '../types';
-import { Calendar, FileText, ChevronDown, ChevronUp, HardDrive } from 'lucide-react';
+import { Calendar, FileText, ChevronDown, ChevronUp, HardDrive, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface InsightsViewProps {
   data: Insights;
+  totalTime?: number;
 }
 
-export const InsightsView: React.FC<InsightsViewProps> = ({ data }) => {
+export const InsightsView: React.FC<InsightsViewProps> = ({ data, totalTime }) => {
   const [showReport, setShowReport] = useState(true); // Default to open now since cards are gone
 
   // Extract all unique dates from the first dailyStat entry to form columns
@@ -15,6 +16,14 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ data }) => {
 
   return (
     <div className="space-y-8 max-w-5xl">
+
+      {/* Stats Board */}
+      {totalTime && (
+          <div className="flex items-center gap-2 text-sm text-zinc-500 bg-zinc-50 px-3 py-2 rounded-md border border-zinc-100 w-fit">
+              <Clock className="w-4 h-4" />
+              <span>Total Analysis Time: <span className="font-semibold text-zinc-900">{totalTime.toFixed(2)}s</span></span>
+          </div>
+      )}
 
       {/* Daily Breakdown Table */}
       {data.dailyStats.length > 0 && (

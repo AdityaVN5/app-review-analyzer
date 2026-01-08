@@ -16,45 +16,84 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 # --- SERVICE 1: INGESTION (Cell 1 Logic) ---
-def fetch_reviews(app_id: str, days: int, lang: str, country: str) -> pd.DataFrame:
+def fetch_reviews(app_id: str, days: int, target_date_str: str, lang: str = 'en', country: str = 'us') -> pd.DataFrame:
     print(f"🚀 Fetching reviews for {app_id}...")
     
-    end_date = datetime.datetime.now()
-    start_date = end_date - datetime.timedelta(days=days)
-    
-    all_reviews = []
-    continuation_token = None
-    
-    while True:
-        result, continuation_token = reviews(
-            app_id,
-            lang=lang,
-            country=country,
-            sort=Sort.NEWEST,
-            count=200, 
-            continuation_token=continuation_token
-        )
+    try:
+        # Parse target date
+        try:
+             target_date = datetime.datetime.strptime(target_date_str, "%Y-%m-%d")
+        except ValueError:
+             target_date = datetime.datetime.fromisoformat(target_date_str.replace('Z', '+00:00')).replace(tzinfo=None)
+
+        # Start date is target_date - days
+        start_date = target_date - datetime.timedelta(days=days)
+        # End date limit (exclusive) is target_date + 1 day
+        end_date_limit = target_date + datetime.timedelta(days=1)
         
-        if not result: break
+        all_reviews = []
+        continuation_token = None
         
-        oldest_in_batch = result[-1]['at']
+        # Determine how many to fetch. Since we can't filter by date API-side easily, 
+        # we fetch a safe amount. 
+        # If days is small, 1000 might be enough.
+        max_fetch = 3000 
+        fetched_count = 0
         
-        for r in result:
-            if r['at'] >= start_date:
-                all_reviews.append({
-                    'id': r['reviewId'],
-                    'date': r['at'],
-                    'content': r['content'],
-                    'score': r['score'],
-                    'app_id': app_id
-                })
-        
-        if oldest_in_batch < start_date:
-            break
+        while fetched_count < max_fetch:
+            result, continuation_token = reviews(
+                app_id,
+                lang=lang,
+                country=country,
+                sort=Sort.NEWEST,
+                count=200, 
+                continuation_token=continuation_token
+            )
             
-    df = pd.DataFrame(all_reviews)
-    print(f"✅ Fetched {len(df)} reviews.")
-    return df
+            if not result: break
+            
+            batch_reviews = []
+            for r in result:
+                r_date = r['at'] # datetime object
+                
+                # Check if review is within range
+                if start_date <= r_date < end_date_limit:
+                    batch_reviews.append({
+                        'id': r['reviewId'],
+                        'date': r['at'],
+                        'content': r['content'],
+                        'rating': r['score'], # Standardizing on 'rating', previously 'score'
+                        'app_id': app_id
+                    })
+                
+            all_reviews.extend(batch_reviews)
+            fetched_count += len(result)
+            
+            # Optimization: If the newest review in this batch is already older than our start_date?
+            # No, 'reviews' returns NEWEST first. 
+            # So if the OLDEST review in this batch is NEWER than end_date_limit, we keep fetching?
+            # Wait. 
+            # If batch has reviews [Today, Yesterday ...]. 
+            # If we want [Last Week].
+            # We skip newer ones until we find ones <= end_date_limit.
+            # If the OLDEST in batch is OLDER than start_date, we can stop? Yes.
+            
+            oldest_in_batch = result[-1]['at'] # The last one is oldest
+            if oldest_in_batch < start_date:
+                print(f"Stopping fetch: Reached date {oldest_in_batch} which is older than {start_date}")
+                break
+                
+        df = pd.DataFrame(all_reviews)
+        if not df.empty:
+             # Ensure we don't have duplicates if any
+             df = df.drop_duplicates(subset=['id'])
+             
+        print(f"✅ Fetched {len(df)} reviews.")
+        return df
+        
+    except Exception as e:
+        print(f"Error fetching reviews: {e}")
+        return pd.DataFrame()
 
 # --- SERVICE 2: CLASSIFICATION (Cell 2 Logic) ---
 def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
@@ -143,7 +182,7 @@ def generate_report(df: pd.DataFrame, taxonomy: list, days: int) -> str:
     
     # Statistics
     topic_counts = df['topic'].value_counts().to_string()
-    avg_rating = df.groupby('topic')['score'].mean().round(2).to_string()
+    avg_rating = df.groupby('topic')['rating'].mean().round(2).to_string()
     
     # Examples
     examples_text = ""

@@ -25,45 +25,95 @@ function App() {
     lookupDays: 2
   });
 
+  // Additional State
+  const [logs, setLogs] = useState<string[]>([]);
+  const [totalTime, setTotalTime] = useState<number>(0);
+
   const runPipeline = useCallback(async () => {
     // Reset and start loading
     setState({ ...INITIAL_STATE, status: 'loading', stage: 1 });
+    setLogs([]);
+    setTotalTime(0);
+    const startTime = Date.now();
 
     try {
-      // Call the Real API
-      const result = await api.analyzeApp(config);
+      const appId = config.appName.includes('id=') ? config.appName.split('id=')[1].split('&')[0] : config.appName;
 
-      // Update state progressively or all at once. 
-      // Since it's a single API call now, we can show "complete" for all stages quickly.
-      // We can use small delays just to show the UI animation if we wanted, but let's just set it.
+      // --- STAGE 1: INGESTION ---
+      setLogs(prev => [...prev, `🚀 Fetching reviews for ${appId}...`]);
+      const ingestRes = await api.ingest(config);
       
+      const ingestionData = {
+          totalReviews: ingestRes.reviews.length,
+          tokenCount: ingestRes.meta_token_count,
+          savedPath: "memory",
+          samples: ingestRes.reviews.slice(0, 10).map((r: any) => ({
+              id: r.id,
+              date: r.date,
+              content: r.content,
+              rating: r.rating
+          }))
+      };
+
+      setLogs(prev => [...prev, `✅ Fetched ${ingestRes.reviews.length} reviews.`]);
       setState(prev => ({
           ...prev,
-          ingestion: result.ingestion,
-          stage: 2, // Move to next visual stage
+          ingestion: ingestionData,
+          stage: 2, 
       }));
 
-      // Small artificial delay for visual effect of "processing" stages
-      await new Promise(r => setTimeout(r, 800));
+      // --- STAGE 2: CLASSIFICATION ---
+      setLogs(prev => [...prev, `🔍 Pass 1: Discovering Taxonomy...`]);
+      // Artificial delay for visuals if needed, or just let API time it. 
+      // The user wants "Cell 1 should display output after fetching...". Done by setting stage 2.
 
-       setState(prev => ({
+      setLogs(prev => [...prev, `🚀 Pass 2: Classifying ${ingestRes.reviews.length} reviews...`]);
+      const classifyRes = await api.classify(ingestRes.reviews, appId);
+      
+      const classificationData = {
+            totalReviews: ingestRes.reviews.length,
+            taxonomy: classifyRes.taxonomy,
+            distribution: api.calculateDistribution(classifyRes.processed_reviews.slice(0, 50), classifyRes.taxonomy), // Sample distribution
+            savedPath: "memory",
+            csvDownloadUrl: classifyRes.csv_download_url
+      };
+
+      setState(prev => ({
           ...prev,
-          classification: result.classification,
+          classification: classificationData,
           stage: 3,
       }));
 
-      await new Promise(r => setTimeout(r, 800));
+      // --- STAGE 3: INSIGHTS ---
+      setLogs(prev => [...prev, `🧠 Generative Report...`]);
+      const insightRes = await api.insight(classifyRes.processed_reviews, classifyRes.taxonomy, config.lookupDays, appId);
+
+      const endTime = Date.now();
+      const timeTaken = (endTime - startTime) / 1000;
+      setTotalTime(timeTaken);
+
+      const insightsData = {
+            trends: [], 
+            risks: [],  
+            recommendations: [], 
+            dailyStats: insightRes.daily_stats,
+            markdownReport: insightRes.report_markdown,
+            dailyStatsCsvDownloadUrl: insightRes.daily_stats_csv_download_url
+      };
 
       setState(prev => ({
           ...prev,
-          insights: result.insights,
+          insights: insightsData,
           status: 'complete'
       }));
+
+      setLogs(prev => [...prev, `✨ Analysis Complete in ${timeTaken.toFixed(2)}s`]);
 
     } catch (error) {
       console.error("Pipeline failed", error);
       setState(prev => ({ ...prev, status: 'idle' })); 
-      alert("Failed to connect to backend. Make sure FastAPI is running on port 8000.");
+      setLogs(prev => [...prev, `❌ Error: ${error}`]);
+      alert("Failed to connect to backend or process data.");
     }
   }, [config]);
 
@@ -228,7 +278,7 @@ function App() {
               state.stage === 2 && state.classification === null ? 'loading' : 'complete'
             }
           >
-            {state.classification && <ClassificationView data={state.classification} />}
+            {state.classification && <ClassificationView data={state.classification} logs={logs} />}
           </StageContainer>
 
           {/* Stage 3: Synthesis */}
@@ -242,7 +292,7 @@ function App() {
               state.stage === 3 && state.insights === null ? 'loading' : 'complete'
             }
           >
-            {state.insights && <InsightsView data={state.insights} />}
+            {state.insights && <InsightsView data={state.insights} totalTime={totalTime} />}
           </StageContainer>
         </div>
 

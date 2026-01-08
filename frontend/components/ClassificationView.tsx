@@ -4,9 +4,10 @@ import { Check, Tag, BarChart3, HardDrive, Terminal } from 'lucide-react';
 
 interface ClassificationViewProps {
   data: ClassificationData;
+  logs: string[];
 }
 
-export const ClassificationView: React.FC<ClassificationViewProps> = ({ data }) => {
+export const ClassificationView: React.FC<ClassificationViewProps> = ({ data, logs }) => {
   const maxCount = Math.max(...data.distribution.map(d => d.count));
 
   return (
@@ -15,24 +16,26 @@ export const ClassificationView: React.FC<ClassificationViewProps> = ({ data }) 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left Column: Log & Taxonomy */}
         <div className="space-y-6">
-          {/* Simulated CLI Output */}
-          <div className="bg-zinc-900 rounded-lg p-4 font-mono text-xs text-zinc-300 leading-relaxed shadow-sm">
+          {/* Real-time CLI Output */}
+          <div className="bg-zinc-900 rounded-lg p-4 font-mono text-xs text-zinc-300 leading-relaxed shadow-sm h-64 flex flex-col">
             <div className="flex items-center gap-2 text-zinc-500 mb-2 border-b border-zinc-800 pb-2">
               <Terminal className="w-3 h-3" />
               <span>Process Log</span>
             </div>
-            <p>📂 Loaded {data.totalReviews} reviews.</p>
-            <p className="mt-2 text-zinc-400">🔍 PASS 1: Discovering Taxonomy...</p>
-            <p className="text-green-400">✅ Taxonomy Locked ({data.taxonomy.length} Categories)</p>
-            <p className="mt-2 text-zinc-400">🚀 PASS 2: Classifying reviews...</p>
-            <div className="pl-2 border-l border-zinc-700 mt-1 space-y-1 text-zinc-500">
-               <p>{"-> Batch 1/5 processed (100 items)"}</p>
-               <p>{"-> Batch 2/5 processed (100 items)"}</p>
-               <p>{"-> Batch 3/5 processed (100 items)"}</p>
-               <p>{"-> Batch 4/5 processed (100 items)"}</p>
-               <p>{"-> Batch 5/5 processed ("}{data.totalReviews % 100}{" items)"}</p>
+            
+            <div className="overflow-y-auto flex-1 space-y-1">
+                {logs.length === 0 ? (
+                    <span className="text-zinc-600 italic">Waiting for process start...</span>
+                ) : (
+                    logs.map((log, i) => (
+                        <div key={i} className="break-words">
+                            <span className="text-zinc-500 mr-2">{`>`}</span>
+                            {log}
+                        </div>
+                    ))
+                )}
+                <div className="animate-pulse text-zinc-500">_</div>
             </div>
-            <p className="mt-2 text-green-400">✅ FINAL STATS GENERATED</p>
           </div>
 
           {/* Locked Taxonomy */}
@@ -64,7 +67,7 @@ export const ClassificationView: React.FC<ClassificationViewProps> = ({ data }) 
             <span className="text-xs font-mono text-zinc-400">Sort: Descending</span>
           </div>
           
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto max-h-[400px]">
             <table className="w-full text-sm text-left">
               <thead className="bg-zinc-50 text-zinc-500 font-medium text-xs uppercase tracking-wider">
                 <tr>
