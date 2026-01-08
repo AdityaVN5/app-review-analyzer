@@ -1,0 +1,5 @@
+{
+  "name": "Agent Pipeline Visualizer",
+  "description": "A minimal, clean interface to visualize a 3-stage LLM analysis pipeline for app reviews.",
+  "requestFramePermissions": []
+}
