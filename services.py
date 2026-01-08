@@ -61,7 +61,7 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
     if df.empty:
         return df, []
 
-    model_flash = genai.GenerativeModel('gemini-2.0-flash') # Updated to latest stable Flash
+    model_flash = genai.GenerativeModel('gemini-2.5-flash') # Updated to latest stable Flash
 
     # 1. Taxonomy Discovery
     print("🔍 Pass 1: Discovering Taxonomy...")
@@ -105,8 +105,14 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
                     prompt, 
                     generation_config={"response_mime_type": "application/json"}
                 )
-                return json.loads(resp.text)
-            except Exception:
+                data = json.loads(resp.text)
+                if isinstance(data, dict):
+                    return data
+                else:
+                    print(f"⚠️ Batch response is not a dict: {type(data)}")
+                    return {}
+            except Exception as e:
+                print(f"⚠️ Error parsing batch JSON (attempt {attempt+1}): {e}")
                 time.sleep(1) # Backoff
         return {}
 
@@ -119,7 +125,14 @@ def classify_reviews(df: pd.DataFrame) -> tuple[pd.DataFrame, list]:
     with ThreadPoolExecutor(max_workers=8) as executor:
         future_to_batch = {executor.submit(process_batch, b, taxonomy): b for b in batches}
         for future in as_completed(future_to_batch):
-            review_category_map.update(future.result())
+            try:
+                batch_result = future.result()
+                if isinstance(batch_result, dict):
+                    review_category_map.update(batch_result)
+                else:
+                    print(f"⚠️ Skipping non-dict batch result: {type(batch_result)}")
+            except Exception as e:
+                print(f"⚠️ Thread error: {e}")
 
     df['topic'] = df['id'].map(review_category_map).fillna("Uncategorized")
     return df, taxonomy
@@ -152,6 +165,6 @@ def generate_report(df: pd.DataFrame, taxonomy: list, days: int) -> str:
     Include: Executive Summary, Critical Issues, Feature Requests, and Action Plan.
     """
     
-    model_pro = genai.GenerativeModel('gemini-2.0-flash') # Using Flash for speed/cost, switch to Pro if needed
+    model_pro = genai.GenerativeModel('gemini-2.5-pro') # Using Flash for speed/cost, switch to Pro if needed
     response = model_pro.generate_content(prompt)
     return response.text
